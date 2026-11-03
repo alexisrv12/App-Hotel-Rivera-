@@ -32,6 +32,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      packages: write
 
     steps:
       - name: Descargar repositorio (Checkout)
@@ -43,37 +44,66 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Configurar Gradle
+      - name: Aceptar licencias de Android SDK
+        run: |
+          mkdir -p "$ANDROID_HOME/licenses"
+          echo -e "\n8933bad161af4178b1185d1a37fbf41ea5269c55\nd56f5187479451eabf01fb78af6dfcb131a6481e\n24333f8a63b6825ea9c5514f83c2829b004d1fee" > "$ANDROID_HOME/licenses/android-sdk-license"
+          echo -e "\n84831b9409646a918e30573bab4c9c91346d8abd" > "$ANDROID_HOME/licenses/android-sdk-preview-license"
+          yes | sdkmanager --licenses 2>/dev/null || true
+
+      - name: Configurar Gradle y Caching
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '9.3.1'
+          cache-read-only: false
 
-      - name: Decodificar Keystore de depuración
+      - name: Preparar variables de entorno y archivos base (.env)
+        run: |
+          touch .env
+          if [ ! -f .env.example ]; then
+            touch .env.example
+          fi
+          echo "Archivos .env verificados."
+
+      - name: Preparar Keystore de depuración
         run: |
           if [ -f debug.keystore.base64 ] && [ ! -f debug.keystore ]; then
             echo "Decodificando debug.keystore.base64..."
             base64 -d debug.keystore.base64 > debug.keystore
           fi
-          if [ -f debug.keystore ]; then
-            echo "Keystore verificado."
-          else
-            echo "Aviso: No se encontró keystore local; Gradle generará el debug keystore automáticamente."
+          if [ ! -f debug.keystore ]; then
+            echo "Generando debug.keystore necesario para debugConfig..."
+            keytool -genkey -v -keystore debug.keystore -alias androiddebugkey -storepass android -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+          fi
+          ls -lh debug.keystore
+
+      - name: Dar permisos de ejecución a gradlew
+        run: |
+          if [ -f "./gradlew" ]; then
+            chmod +x ./gradlew
           fi
 
       - name: Compilar APK con Gradle
         run: |
-          gradle :app:assembleDebug --no-daemon --stacktrace
+          if [ -f "./gradlew" ]; then
+            echo "Compilando con Gradle Wrapper (./gradlew)..."
+            ./gradlew :app:assembleDebug --no-daemon --stacktrace
+          else
+            echo "Compilando con Gradle CLI..."
+            gradle :app:assembleDebug --no-daemon --stacktrace
+          fi
 
-      - name: Preparar carpeta de distribución de APK
+      - name: Preparar y verificar APK generado
         run: |
           mkdir -p build/dist-apk
-          APK_SRC="app/build/outputs/apk/debug/app-debug.apk"
-          if [ -f "$APK_SRC" ]; then
-            cp "$APK_SRC" build/dist-apk/HotelRivera-v1.0.apk
-            echo "APK copiado exitosamente a build/dist-apk/HotelRivera-v1.0.apk"
-            ls -lh build/dist-apk/
+          APK_FOUND=$(find app/build/outputs/apk -name "*.apk" | head -n 1)
+          if [ -n "$APK_FOUND" ] && [ -f "$APK_FOUND" ]; then
+            cp "$APK_FOUND" build/dist-apk/HotelRivera-v1.0.apk
+            echo "APK copiado exitosamente de $APK_FOUND a build/dist-apk/HotelRivera-v1.0.apk"
+            ls -lh build/dist-apk/HotelRivera-v1.0.apk
           else
-            echo "Error: No se encontró el APK en $APK_SRC"
+            echo "Error: No se encontró ningún archivo APK generado en app/build/outputs/apk"
+            find app/build/outputs || true
             exit 1
           fi
 
@@ -84,10 +114,12 @@ jobs:
           path: build/dist-apk/HotelRivera-v1.0.apk
           if-no-files-found: error
           retention-days: 30
+          overwrite: true
 
       - name: Publicar APK en GitHub Release (si es tag o solicitado)
         if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.create_release == 'true' || github.event_name == 'release'
         uses: softprops/action-gh-release@v2
+        continue-on-error: true
         with:
           tag_name: ${{ github.event.inputs.tag_name || github.ref_name }}
           name: "Hotel Rivera ${{ github.event.inputs.tag_name || github.ref_name }}"
