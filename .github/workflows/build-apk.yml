@@ -38,24 +38,32 @@ jobs:
       - name: Descargar repositorio (Checkout)
         uses: actions/checkout@v4
 
-      - name: Configurar Java JDK 21 (Requerido por AGP 9.1.1 y Gradle 9.3.1)
+      - name: Configurar Java JDK 21 con Caching de Gradle
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '21'
+          cache: 'gradle'
 
-      - name: Aceptar licencias y configurar permisos de Android SDK
+      - name: Configurar Android SDK, Licencias y local.properties
         run: |
           SDK_DIR="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
-          sudo chown -R $USER:$USER "$SDK_DIR" 2>/dev/null || true
-          mkdir -p "$SDK_DIR/licenses" 2>/dev/null || true
-          printf "8933bad161af4178b1185d1a37fbf41ea5269c55\nd56f5187479451eabf01fb78af6dfcb131a6481e\n24333f8a63b6825ea9c5514f83c2829b004d1fee\n" > "$SDK_DIR/licenses/android-sdk-license" || true
-          printf "84831b9409646a918e30573bab4c9c91346d8abd\n" > "$SDK_DIR/licenses/android-sdk-preview-license" || true
-          printf "d97546511b248a39df35309e688836e4e65cb576\n" > "$SDK_DIR/licenses/android-sdk-arm-dbt-license" || true
-          echo "Licencias de Android SDK configuradas exitosamente en $SDK_DIR/licenses"
+          echo "ANDROID_HOME=$SDK_DIR" >> $GITHUB_ENV
+          echo "ANDROID_SDK_ROOT=$SDK_DIR" >> $GITHUB_ENV
+          
+          # Habilitar permisos de escritura en carpetas clave
+          sudo mkdir -p "$SDK_DIR/licenses" "$SDK_DIR/platforms" 2>/dev/null || mkdir -p "$SDK_DIR/licenses" "$SDK_DIR/platforms"
+          sudo chmod -R 777 "$SDK_DIR/licenses" "$SDK_DIR/platforms" 2>/dev/null || true
 
-      - name: Configurar Gradle y Caching
-        uses: gradle/actions/setup-gradle@v4
+          # Escribir hashes de licencias oficiales
+          printf "8933bad161af4178b1185d1a37fbf41ea5269c55\nd56f5187479451eabf01fb78af6dfcb131a6481e\n24333f8a63b6825ea9c5514f83c2829b004d1fee\n" | sudo tee "$SDK_DIR/licenses/android-sdk-license" > /dev/null
+          printf "84831b9409646a918e30573bab4c9c91346d8abd\n" | sudo tee "$SDK_DIR/licenses/android-sdk-preview-license" > /dev/null
+          printf "d97546511b248a39df35309e688836e4e65cb576\n" | sudo tee "$SDK_DIR/licenses/android-sdk-arm-dbt-license" > /dev/null
+          
+          # Crear local.properties en raíz y submódulo app
+          echo "sdk.dir=$SDK_DIR" > local.properties
+          echo "sdk.dir=$SDK_DIR" > app/local.properties
+          echo "Android SDK y licencias configurados exitosamente en $SDK_DIR"
 
       - name: Preparar variables de entorno y archivos base (.env)
         run: |
@@ -63,7 +71,7 @@ jobs:
           if [ ! -f .env.example ]; then
             touch .env.example
           fi
-          echo "Archivos .env y .env.example listos."
+          echo "Archivos .env listos."
 
       - name: Preparar Keystore de depuración (debugConfig)
         run: |
@@ -77,19 +85,20 @@ jobs:
           fi
           ls -lh debug.keystore
 
-      - name: Dar permisos de ejecución al Wrapper de Gradle
+      - name: Preparar script ejecutable gradlew
         run: |
           if [ -f "./gradlew" ]; then
+            sed -i 's/\r$//' ./gradlew || true
             chmod +x ./gradlew
           fi
 
       - name: Compilar APK con Gradle
         run: |
           if [ -f "./gradlew" ]; then
-            echo "Iniciando compilación con ./gradlew..."
+            echo "Compilando con Gradle Wrapper (./gradlew)..."
             ./gradlew :app:assembleDebug --no-daemon --no-configuration-cache --stacktrace
           else
-            echo "Iniciando compilación con Gradle del sistema..."
+            echo "Compilando con Gradle CLI..."
             gradle :app:assembleDebug --no-daemon --no-configuration-cache --stacktrace
           fi
 
@@ -97,12 +106,15 @@ jobs:
         run: |
           mkdir -p build/dist-apk
           APK_FOUND=$(find app/build/outputs/apk -type f -name "*.apk" | head -n 1)
+          if [ -z "$APK_FOUND" ]; then
+            APK_FOUND=$(find . -type f -name "*.apk" | head -n 1)
+          fi
           if [ -n "$APK_FOUND" ] && [ -f "$APK_FOUND" ]; then
             cp "$APK_FOUND" build/dist-apk/HotelRivera-v1.0.apk
             echo "APK copiado exitosamente de $APK_FOUND a build/dist-apk/HotelRivera-v1.0.apk"
             ls -lh build/dist-apk/HotelRivera-v1.0.apk
           else
-            echo "Error: No se encontró ningún archivo APK generado en app/build/outputs/apk"
+            echo "Error: No se encontró ningún archivo APK generado"
             find . -name "*.apk" || true
             exit 1
           fi
