@@ -542,93 +542,99 @@ fun RecepcionHabitacionesContent(
         }
     }
 
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(14.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
-        // Summary Counter Header (Requirement 3: Compact & orderly)
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                StatusMiniChip(
-                    label = "DISPONIBLES",
-                    count = availableRooms.size,
-                    color = StatusAvailableGreen,
-                    bg = StatusAvailableBg,
-                    modifier = Modifier.weight(1f).clickable { filterState = if (filterState == "DISPONIBLES") "TODAS" else "DISPONIBLES" }
-                )
-                StatusMiniChip(
-                    label = "OCUPADAS",
-                    count = occupiedRooms.size,
-                    color = StatusOccupiedRed,
-                    bg = StatusOccupiedBg,
-                    modifier = Modifier.weight(1f).clickable { filterState = if (filterState == "OCUPADAS") "TODAS" else "OCUPADAS" }
-                )
-                StatusMiniChip(
-                    label = "RESERVADAS",
-                    count = reservedRooms.size,
-                    color = StatusReservedAmber,
-                    bg = StatusReservedBg,
-                    modifier = Modifier.weight(1f).clickable { filterState = if (filterState == "RESERVADAS") "TODAS" else "RESERVADAS" }
-                )
-                StatusMiniChip(
-                    label = "DESHABILITADAS",
-                    count = disabledRooms.size,
-                    color = StatusDisabledGray,
-                    bg = StatusDisabledBg,
-                    modifier = Modifier.weight(1f).clickable { filterState = if (filterState == "DESHABILITADAS") "TODAS" else "DESHABILITADAS" }
-                )
-            }
-        }
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        val minCardWidth = if (maxWidth >= 950.dp) 320.dp else 290.dp
 
-        if (filterState != "TODAS") {
-            item {
+        LazyVerticalGrid(
+            columns = GridCells.Adaptive(minSize = minCardWidth),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            // Summary Counter Header (Full width across all grid columns)
+            item(span = { GridItemSpan(maxLineSpan) }) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Text(
-                        text = "Filtro activo: $filterState (${filteredRooms.size})",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = ButtonAccent
+                    StatusMiniChip(
+                        label = "DISPONIBLES",
+                        count = availableRooms.size,
+                        color = StatusAvailableGreen,
+                        bg = StatusAvailableBg,
+                        modifier = Modifier.weight(1f).clickable { filterState = if (filterState == "DISPONIBLES") "TODAS" else "DISPONIBLES" }
                     )
-                    TextButton(onClick = { filterState = "TODAS" }) {
-                        Text("Ver todas", fontSize = 11.sp, color = TextLightSecondary)
-                    }
+                    StatusMiniChip(
+                        label = "OCUPADAS",
+                        count = occupiedRooms.size,
+                        color = StatusOccupiedRed,
+                        bg = StatusOccupiedBg,
+                        modifier = Modifier.weight(1f).clickable { filterState = if (filterState == "OCUPADAS") "TODAS" else "OCUPADAS" }
+                    )
+                    StatusMiniChip(
+                        label = "RESERVADAS",
+                        count = reservedRooms.size,
+                        color = StatusReservedAmber,
+                        bg = StatusReservedBg,
+                        modifier = Modifier.weight(1f).clickable { filterState = if (filterState == "RESERVADAS") "TODAS" else "RESERVADAS" }
+                    )
+                    StatusMiniChip(
+                        label = "DESHABILITADAS",
+                        count = disabledRooms.size,
+                        color = StatusDisabledGray,
+                        bg = StatusDisabledBg,
+                        modifier = Modifier.weight(1f).clickable { filterState = if (filterState == "DESHABILITADAS") "TODAS" else "DESHABILITADAS" }
+                    )
                 }
             }
-        }
 
-        if (filteredRooms.isEmpty()) {
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 20.dp),
-                    colors = CardDefaults.cardColors(containerColor = CardLight)
-                ) {
-                    Box(modifier = Modifier.padding(24.dp).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                        Text("No hay habitaciones en esta categoría.", fontSize = 13.sp, color = TextDarkSecondary)
+            if (filterState != "TODAS") {
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Filtro activo: $filterState (${filteredRooms.size})",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = ButtonAccent
+                        )
+                        TextButton(onClick = { filterState = "TODAS" }) {
+                            Text("Ver todas", fontSize = 11.sp, color = TextLightSecondary)
+                        }
                     }
                 }
             }
-        } else {
-            items(filteredRooms) { room ->
-                val activeStay = activeStaysByRoom[room.number]
-                CompactRoomCard(
-                    room = room,
-                    stay = activeStay,
-                    onStartStay = { onRoomClick(room) },
-                    onAddExtraTime = { if (activeStay != null) onAddExtraTime(activeStay.id) },
-                    onChangeRoom = { if (activeStay != null) onChangeRoomClick(activeStay) },
-                    onReleaseRoom = { if (activeStay != null) onReleaseRoom(activeStay) },
-                    onEarlyCheckout = { if (activeStay != null) onEarlyCheckout(activeStay) },
-                    onDeliverAmenity = { if (activeStay != null) onDeliverAmenityClick(activeStay) }
-                )
+
+            if (filteredRooms.isEmpty()) {
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 20.dp),
+                        colors = CardDefaults.cardColors(containerColor = CardLight)
+                    ) {
+                        Box(modifier = Modifier.padding(24.dp).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                            Text("No hay habitaciones en esta categoría.", fontSize = 13.sp, color = TextDarkSecondary)
+                        }
+                    }
+                }
+            } else {
+                items(filteredRooms) { room ->
+                    val activeStay = activeStaysByRoom[room.number]
+                    CompactRoomCard(
+                        room = room,
+                        stay = activeStay,
+                        onStartStay = { onRoomClick(room) },
+                        onAddExtraTime = { if (activeStay != null) onAddExtraTime(activeStay.id) },
+                        onChangeRoom = { if (activeStay != null) onChangeRoomClick(activeStay) },
+                        onReleaseRoom = { if (activeStay != null) onReleaseRoom(activeStay) },
+                        onEarlyCheckout = { if (activeStay != null) onEarlyCheckout(activeStay) },
+                        onDeliverAmenity = { if (activeStay != null) onDeliverAmenityClick(activeStay) }
+                    )
+                }
             }
         }
     }
@@ -716,13 +722,18 @@ fun RecepcionFacturacionContent(
         currentNow + ((selectedTariff?.durationMinutes ?: 60) * 60 * 1000L)
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-            .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.TopCenter
     ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .widthIn(max = 840.dp)
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
         // Section Title
         Text(
             text = "REGISTRAR NUEVA ESTADÍA Y FACTURA",
@@ -1113,6 +1124,7 @@ fun RecepcionFacturacionContent(
 
         Spacer(modifier = Modifier.height(20.dp))
     }
+}
 
     // Modal: Add Product to Invoice
     if (showAddProductDialog) {
@@ -1310,406 +1322,639 @@ fun RecepcionReservacionesContent(
         reservations.count { it.status == ReservationStatus.PENDIENTE || it.status == ReservationStatus.CONFIRMADA }
     }
 
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(14.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
-        // 1. Top Section Header with Title and Create Button
-        item {
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        val isTabletLandscape = maxWidth >= 720.dp
+
+        if (isTabletLandscape) {
+            // TABLET LANDSCAPE: 2-PANE HORIZONTAL LAYOUT
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(14.dp),
+                horizontalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                Column {
-                    Text(
-                        text = "RESERVACIONES",
-                        fontSize = 17.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = HotelNavy
-                    )
-                    Text(
-                        text = "$totalActiveCount activas • ${reservations.size} en total",
-                        fontSize = 12.sp,
-                        color = TextDarkSecondary
-                    )
-                }
-
-                Button(
-                    onClick = onCreateClick,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = ButtonAccent,
-                        contentColor = ButtonAccentText
-                    ),
-                    shape = RoundedCornerShape(10.dp),
-                    modifier = Modifier.testTag("btn_new_reservation")
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("NUEVA RESERVACIÓN", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                }
-            }
-        }
-
-        // 2. Functional Interactive Calendar (Day, Week, Month Views)
-        item {
-            ReservationCalendarView(
-                selectedDateEpoch = selectedCalendarDateEpoch,
-                onDateSelected = { newEpoch ->
-                    selectedCalendarDateEpoch = newEpoch
-                    showOnlySelectedDate = true
-                },
-                reservations = reservations,
-                viewMode = calendarViewMode,
-                onViewModeChanged = { calendarViewMode = it }
-            )
-        }
-
-        // 3. Date Selection Bar & View Mode Toggle
-        item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(10.dp),
-                colors = CardDefaults.cardColors(containerColor = CardLightSubtle),
-                border = androidx.compose.foundation.BorderStroke(1.dp, BorderMedium)
-            ) {
-                Row(
+                // LEFT PANE: Calendar & Header (Scrollable)
+                Column(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                        .weight(0.48f)
+                        .fillMaxHeight()
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = if (showOnlySelectedDate) "Fecha: ${dayHeaderFormat.format(Date(selectedCalendarDateEpoch)).replaceFirstChar { it.uppercase() }}"
-                                   else "Mostrando: Todas las fechas (${reservations.size})",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = HotelNavy
-                        )
-                        Text(
-                            text = "${filteredList.size} reservación(es) encontrada(s)",
-                            fontSize = 11.sp,
-                            color = TextDarkSecondary
-                        )
+                    // Header with Title & Action
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(
+                                text = "RESERVACIONES",
+                                fontSize = 17.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = HotelNavy
+                            )
+                            Text(
+                                text = "$totalActiveCount activas • ${reservations.size} en total",
+                                fontSize = 12.sp,
+                                color = TextDarkSecondary
+                            )
+                        }
+
+                        Button(
+                            onClick = onCreateClick,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = ButtonAccent,
+                                contentColor = ButtonAccentText
+                            ),
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.testTag("btn_new_reservation_tablet")
+                        ) {
+                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("NUEVA", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        }
                     }
 
-                    OutlinedButton(
-                        onClick = { showOnlySelectedDate = !showOnlySelectedDate },
-                        shape = RoundedCornerShape(8.dp),
-                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            containerColor = if (!showOnlySelectedDate) HotelNavy else ButtonSecondaryBg,
-                            contentColor = if (!showOnlySelectedDate) Color.White else TextDark
-                        ),
+                    // Interactive Calendar
+                    ReservationCalendarView(
+                        selectedDateEpoch = selectedCalendarDateEpoch,
+                        onDateSelected = { newEpoch ->
+                            selectedCalendarDateEpoch = newEpoch
+                            showOnlySelectedDate = true
+                        },
+                        reservations = reservations,
+                        viewMode = calendarViewMode,
+                        onViewModeChanged = { calendarViewMode = it }
+                    )
+                }
+
+                // RIGHT PANE: Selected Day Filter & Reservation Cards
+                Column(
+                    modifier = Modifier
+                        .weight(0.52f)
+                        .fillMaxHeight(),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    // Date banner
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp),
+                        colors = CardDefaults.cardColors(containerColor = CardLightSubtle),
                         border = androidx.compose.foundation.BorderStroke(1.dp, BorderMedium)
                     ) {
-                        Icon(
-                            imageVector = if (showOnlySelectedDate) Icons.Default.EventNote else Icons.Default.Today,
-                            contentDescription = null,
-                            modifier = Modifier.size(14.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = if (showOnlySelectedDate) "Ver todas" else "Ver solo este día",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-                }
-            }
-        }
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = if (showOnlySelectedDate) "Fecha: ${dayHeaderFormat.format(Date(selectedCalendarDateEpoch)).replaceFirstChar { it.uppercase() }}"
+                                           else "Mostrando: Todas las fechas (${reservations.size})",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = HotelNavy
+                                )
+                                Text(
+                                    text = "${filteredList.size} reservación(es) encontrada(s)",
+                                    fontSize = 11.sp,
+                                    color = TextDarkSecondary
+                                )
+                            }
 
-        // 4. Status Filter Chips
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                listOf("TODAS", "PENDIENTE", "CONFIRMADA", "COMPLETADA", "CANCELADA").forEach { st ->
-                    val isSel = filterStatus == st
-                    val count = if (showOnlySelectedDate) {
-                        reservations.count { res ->
-                            val rCal = Calendar.getInstance().apply { timeInMillis = res.arrivalTimeEpoch }
-                            val onDay = rCal.get(Calendar.YEAR) == selYear && rCal.get(Calendar.DAY_OF_YEAR) == selDayOfYear
-                            onDay && (st == "TODAS" || res.status.name == st)
+                            OutlinedButton(
+                                onClick = { showOnlySelectedDate = !showOnlySelectedDate },
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    containerColor = if (!showOnlySelectedDate) HotelNavy else ButtonSecondaryBg,
+                                    contentColor = if (!showOnlySelectedDate) Color.White else TextDark
+                                ),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, BorderMedium)
+                            ) {
+                                Icon(
+                                    imageVector = if (showOnlySelectedDate) Icons.Default.EventNote else Icons.Default.Today,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = if (showOnlySelectedDate) "Ver todas" else "Ver solo este día",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
                         }
-                    } else {
-                        if (st == "TODAS") reservations.size else reservations.count { it.status.name == st }
                     }
 
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(if (isSel) ButtonPrimary else CardLight)
-                            .border(1.dp, if (isSel) ButtonPrimary else BorderMedium, RoundedCornerShape(8.dp))
-                            .clickable { filterStatus = st }
-                            .padding(horizontal = 8.dp, vertical = 6.dp)
+                    // Filter chips
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        Text(
-                            text = if (count > 0) "$st ($count)" else st,
-                            fontSize = 10.sp,
-                            fontWeight = if (isSel) FontWeight.Bold else FontWeight.Medium,
-                            color = if (isSel) Color.White else TextDark
-                        )
-                    }
-                }
-            }
-        }
+                        listOf("TODAS", "PENDIENTE", "CONFIRMADA", "COMPLETADA", "CANCELADA").forEach { st ->
+                            val isSel = filterStatus == st
+                            val count = if (showOnlySelectedDate) {
+                                reservations.count { res ->
+                                    val rCal = Calendar.getInstance().apply { timeInMillis = res.arrivalTimeEpoch }
+                                    val onDay = rCal.get(Calendar.YEAR) == selYear && rCal.get(Calendar.DAY_OF_YEAR) == selDayOfYear
+                                    onDay && (st == "TODAS" || res.status.name == st)
+                                }
+                            } else {
+                                if (st == "TODAS") reservations.size else reservations.count { it.status.name == st }
+                            }
 
-        // 5. Reservation Cards
-        if (filteredList.isEmpty()) {
-            item {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 16.dp),
-                    colors = CardDefaults.cardColors(containerColor = CardLight),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, BorderMedium)
-                ) {
-                    Box(modifier = Modifier.padding(24.dp).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(Icons.Default.EventBusy, contentDescription = null, tint = TextDarkSecondary, modifier = Modifier.size(36.dp))
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = if (showOnlySelectedDate) "No hay reservaciones para ${shortDayFormat.format(Date(selectedCalendarDateEpoch))}."
-                                       else "No hay reservaciones registradas con el filtro seleccionado.",
-                                fontSize = 13.sp,
-                                color = TextDarkSecondary,
-                                textAlign = TextAlign.Center
-                            )
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(if (isSel) ButtonPrimary else CardLight)
+                                    .border(1.dp, if (isSel) ButtonPrimary else BorderMedium, RoundedCornerShape(8.dp))
+                                    .clickable { filterStatus = st }
+                                    .padding(horizontal = 8.dp, vertical = 6.dp)
+                            ) {
+                                Text(
+                                    text = if (count > 0) "$st ($count)" else st,
+                                    fontSize = 10.sp,
+                                    fontWeight = if (isSel) FontWeight.Bold else FontWeight.Medium,
+                                    color = if (isSel) Color.White else TextDark
+                                )
+                            }
+                        }
+                    }
+
+                    // Cards list in right pane
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        if (filteredList.isEmpty()) {
+                            item {
+                                Card(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 16.dp),
+                                    colors = CardDefaults.cardColors(containerColor = CardLight),
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, BorderMedium)
+                                ) {
+                                    Box(modifier = Modifier.padding(24.dp).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                            Icon(Icons.Default.EventBusy, contentDescription = null, tint = TextDarkSecondary, modifier = Modifier.size(36.dp))
+                                            Spacer(modifier = Modifier.height(8.dp))
+                                            Text(
+                                                text = if (showOnlySelectedDate) "No hay reservaciones para ${shortDayFormat.format(Date(selectedCalendarDateEpoch))}."
+                                                       else "No hay reservaciones registradas con el filtro seleccionado.",
+                                                fontSize = 13.sp,
+                                                color = TextDarkSecondary,
+                                                textAlign = TextAlign.Center
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        } else {
+                            items(filteredList) { res ->
+                                ReservationCardItem(
+                                    res = res,
+                                    targetRoom = rooms.find { it.number == res.roomNumber },
+                                    onCheckInFromReservation = onCheckInFromReservation,
+                                    onModifyClick = onModifyClick,
+                                    onCancelClick = onCancelClick,
+                                    onUpdateStatus = onUpdateStatus
+                                )
+                            }
                         }
                     }
                 }
             }
         } else {
-            items(filteredList) { res ->
-                val departureEpoch = res.arrivalTimeEpoch + (res.durationMinutes * 60 * 1000L)
-                val targetRoom = rooms.find { it.number == res.roomNumber }
-                val isUpcomingOrPending = res.status == ReservationStatus.PENDIENTE || res.status == ReservationStatus.CONFIRMADA
-
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = CardLight),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, BorderMedium),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                ) {
-                    Column(modifier = Modifier.padding(14.dp)) {
-                        // Card Header: Room Number + Type + Status
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(34.dp)
-                                        .clip(CircleShape)
-                                        .background(HotelNavy),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = res.roomNumber,
-                                        color = Color.White,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 13.sp
-                                    )
-                                }
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Column {
-                                    Text(
-                                        text = "Habitación ${res.roomNumber}",
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 15.sp,
-                                        color = TextDark
-                                    )
-                                    if (targetRoom != null) {
-                                        Text(
-                                            text = "${targetRoom.type.name} • ${targetRoom.bedCount} cama(s)",
-                                            fontSize = 11.sp,
-                                            color = TextDarkSecondary
-                                        )
-                                    }
-                                }
-                            }
-
-                            ReservationBadge(status = res.status)
+            // PHONE PORTRAIT: SINGLE VERTICAL FLOW
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(14.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                // 1. Top Section Header with Title and Create Button
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(
+                                text = "RESERVACIONES",
+                                fontSize = 17.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = HotelNavy
+                            )
+                            Text(
+                                text = "$totalActiveCount activas • ${reservations.size} en total",
+                                fontSize = 12.sp,
+                                color = TextDarkSecondary
+                            )
                         }
 
-                        Spacer(modifier = Modifier.height(10.dp))
+                        Button(
+                            onClick = onCreateClick,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = ButtonAccent,
+                                contentColor = ButtonAccentText
+                            ),
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.testTag("btn_new_reservation")
+                        ) {
+                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("NUEVA RESERVACIÓN", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
 
-                        // Guest name and Reservation number
+                // 2. Functional Interactive Calendar
+                item {
+                    ReservationCalendarView(
+                        selectedDateEpoch = selectedCalendarDateEpoch,
+                        onDateSelected = { newEpoch ->
+                            selectedCalendarDateEpoch = newEpoch
+                            showOnlySelectedDate = true
+                        },
+                        reservations = reservations,
+                        viewMode = calendarViewMode,
+                        onViewModeChanged = { calendarViewMode = it }
+                    )
+                }
+
+                // 3. Date Selection Bar & View Mode Toggle
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp),
+                        colors = CardDefaults.cardColors(containerColor = CardLightSubtle),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, BorderMedium)
+                    ) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .background(CardLightSubtle, RoundedCornerShape(6.dp))
-                                .padding(horizontal = 8.dp, vertical = 6.dp),
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(15.dp), tint = TextDarkSecondary)
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = if (showOnlySelectedDate) "Fecha: ${dayHeaderFormat.format(Date(selectedCalendarDateEpoch)).replaceFirstChar { it.uppercase() }}"
+                                           else "Mostrando: Todas las fechas (${reservations.size})",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = HotelNavy
+                                )
+                                Text(
+                                    text = "${filteredList.size} reservación(es) encontrada(s)",
+                                    fontSize = 11.sp,
+                                    color = TextDarkSecondary
+                                )
+                            }
+
+                            OutlinedButton(
+                                onClick = { showOnlySelectedDate = !showOnlySelectedDate },
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    containerColor = if (!showOnlySelectedDate) HotelNavy else ButtonSecondaryBg,
+                                    contentColor = if (!showOnlySelectedDate) Color.White else TextDark
+                                ),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, BorderMedium)
+                            ) {
+                                Icon(
+                                    imageVector = if (showOnlySelectedDate) Icons.Default.EventNote else Icons.Default.Today,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(14.dp)
+                                )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    text = res.clientName.ifBlank { "Consumidor Final" },
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = TextDark
+                                    text = if (showOnlySelectedDate) "Ver todas" else "Ver solo este día",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.SemiBold
                                 )
                             }
-                            Text(
-                                text = res.reservationNumber,
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = HotelGoldDark
-                            )
                         }
+                    }
+                }
 
-                        Spacer(modifier = Modifier.height(8.dp))
+                // 4. Status Filter Chips
+                item {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        listOf("TODAS", "PENDIENTE", "CONFIRMADA", "COMPLETADA", "CANCELADA").forEach { st ->
+                            val isSel = filterStatus == st
+                            val count = if (showOnlySelectedDate) {
+                                reservations.count { res ->
+                                    val rCal = Calendar.getInstance().apply { timeInMillis = res.arrivalTimeEpoch }
+                                    val onDay = rCal.get(Calendar.YEAR) == selYear && rCal.get(Calendar.DAY_OF_YEAR) == selDayOfYear
+                                    onDay && (st == "TODAS" || res.status.name == st)
+                                }
+                            } else {
+                                if (st == "TODAS") reservations.size else reservations.count { it.status.name == st }
+                            }
 
-                        // Arrival, Duration and Calculated Departure
-                        Column(
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(if (isSel) ButtonPrimary else CardLight)
+                                    .border(1.dp, if (isSel) ButtonPrimary else BorderMedium, RoundedCornerShape(8.dp))
+                                    .clickable { filterStatus = st }
+                                    .padding(horizontal = 8.dp, vertical = 6.dp)
+                            ) {
+                                Text(
+                                    text = if (count > 0) "$st ($count)" else st,
+                                    fontSize = 10.sp,
+                                    fontWeight = if (isSel) FontWeight.Bold else FontWeight.Medium,
+                                    color = if (isSel) Color.White else TextDark
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // 5. Reservation Cards
+                if (filteredList.isEmpty()) {
+                    item {
+                        Card(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .background(CardLightSubtle, RoundedCornerShape(6.dp))
-                                .padding(8.dp),
-                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                                .padding(vertical = 16.dp),
+                            colors = CardDefaults.cardColors(containerColor = CardLight),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, BorderMedium)
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.Schedule, contentDescription = null, modifier = Modifier.size(14.dp), tint = HotelNavy)
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = "Llegada: ${dateTimeFormat.format(Date(res.arrivalTimeEpoch))}",
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = TextDark
-                                )
-                            }
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(Icons.Default.Timer, contentDescription = null, modifier = Modifier.size(14.dp), tint = TextDarkSecondary)
-                                    Spacer(modifier = Modifier.width(6.dp))
+                            Box(modifier = Modifier.padding(24.dp).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Icon(Icons.Default.EventBusy, contentDescription = null, tint = TextDarkSecondary, modifier = Modifier.size(36.dp))
+                                    Spacer(modifier = Modifier.height(8.dp))
                                     Text(
-                                        text = "Duración: ${res.durationMinutes / 60}h ${res.durationMinutes % 60}m (${res.tariffTitle})",
-                                        fontSize = 12.sp,
-                                        color = TextDarkSecondary
-                                    )
-                                }
-
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(Icons.Default.Logout, contentDescription = null, modifier = Modifier.size(14.dp), tint = StatusOccupiedRed)
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text(
-                                        text = "Salida: ${timeOnlyFormat.format(Date(departureEpoch))}",
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = StatusOccupiedRed
+                                        text = if (showOnlySelectedDate) "No hay reservaciones para ${shortDayFormat.format(Date(selectedCalendarDateEpoch))}."
+                                               else "No hay reservaciones registradas con el filtro seleccionado.",
+                                        fontSize = 13.sp,
+                                        color = TextDarkSecondary,
+                                        textAlign = TextAlign.Center
                                     )
                                 }
                             }
                         }
+                    }
+                } else {
+                    items(filteredList) { res ->
+                        ReservationCardItem(
+                            res = res,
+                            targetRoom = rooms.find { it.number == res.roomNumber },
+                            onCheckInFromReservation = onCheckInFromReservation,
+                            onModifyClick = onModifyClick,
+                            onCancelClick = onCancelClick,
+                            onUpdateStatus = onUpdateStatus
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
 
-                        if (res.notes.isNotBlank()) {
-                            Spacer(modifier = Modifier.height(6.dp))
+@Composable
+fun ReservationCardItem(
+    res: Reservation,
+    targetRoom: Room?,
+    onCheckInFromReservation: (Reservation) -> Unit,
+    onModifyClick: (Reservation) -> Unit,
+    onCancelClick: (Reservation) -> Unit,
+    onUpdateStatus: (String, ReservationStatus) -> Unit
+) {
+    val dateTimeFormat = remember { SimpleDateFormat("dd/MM/yyyy hh:mm a", Locale.getDefault()) }
+    val timeOnlyFormat = remember { SimpleDateFormat("hh:mm a", Locale.getDefault()) }
+    val departureEpoch = res.arrivalTimeEpoch + (res.durationMinutes * 60 * 1000L)
+    val isUpcomingOrPending = res.status == ReservationStatus.PENDIENTE || res.status == ReservationStatus.CONFIRMADA
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = CardLight),
+        border = androidx.compose.foundation.BorderStroke(1.dp, BorderMedium),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(modifier = Modifier.padding(14.dp)) {
+            // Card Header: Room Number + Type + Status
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(34.dp)
+                            .clip(CircleShape)
+                            .background(HotelNavy),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = res.roomNumber,
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Column {
+                        Text(
+                            text = "Habitación ${res.roomNumber}",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp,
+                            color = TextDark
+                        )
+                        if (targetRoom != null) {
                             Text(
-                                text = "Notas: ${res.notes}",
+                                text = "${targetRoom.type.name} • ${targetRoom.bedCount} cama(s)",
                                 fontSize = 11.sp,
-                                color = TextDarkSecondary,
-                                fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
+                                color = TextDarkSecondary
                             )
                         }
+                    }
+                }
 
-                        Spacer(modifier = Modifier.height(10.dp))
+                ReservationBadge(status = res.status)
+            }
 
-                        // Action Buttons: HOSPEDAR, MODIFICAR, CONFIRMAR, CANCELAR
-                        if (isUpcomingOrPending) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                // [ HOSPEDAR ]
-                                Button(
-                                    onClick = { onCheckInFromReservation(res) },
-                                    modifier = Modifier
-                                        .weight(1.3f)
-                                        .height(38.dp),
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = ButtonAccent,
-                                        contentColor = ButtonAccentText
-                                    ),
-                                    shape = RoundedCornerShape(8.dp),
-                                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp)
-                                ) {
-                                    Icon(Icons.Default.MeetingRoom, contentDescription = null, modifier = Modifier.size(14.dp))
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text("HOSPEDAR", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                                }
+            Spacer(modifier = Modifier.height(10.dp))
 
-                                // [ MODIFICAR ]
-                                OutlinedButton(
-                                    onClick = { onModifyClick(res) },
-                                    modifier = Modifier
-                                        .weight(1.1f)
-                                        .height(38.dp),
-                                    shape = RoundedCornerShape(8.dp),
-                                    border = androidx.compose.foundation.BorderStroke(1.dp, BorderMedium),
-                                    colors = ButtonDefaults.outlinedButtonColors(
-                                        containerColor = ButtonSecondaryBg,
-                                        contentColor = ButtonSecondaryText
-                                    ),
-                                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp)
-                                ) {
-                                    Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(13.dp))
-                                    Spacer(modifier = Modifier.width(3.dp))
-                                    Text("Modificar", fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                                }
+            // Guest name and Reservation number
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(CardLightSubtle, RoundedCornerShape(6.dp))
+                    .padding(horizontal = 8.dp, vertical = 6.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(15.dp), tint = TextDarkSecondary)
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = res.clientName.ifBlank { "Consumidor Final" },
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextDark
+                    )
+                }
+                Text(
+                    text = res.reservationNumber,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = HotelGoldDark
+                )
+            }
 
-                                if (res.status == ReservationStatus.PENDIENTE) {
-                                    // [ CONFIRMAR ]
-                                    OutlinedButton(
-                                        onClick = { onUpdateStatus(res.id, ReservationStatus.CONFIRMADA) },
-                                        modifier = Modifier
-                                            .weight(1.1f)
-                                            .height(38.dp),
-                                        shape = RoundedCornerShape(8.dp),
-                                        border = androidx.compose.foundation.BorderStroke(1.dp, StatusAvailableGreen),
-                                        colors = ButtonDefaults.outlinedButtonColors(
-                                            containerColor = StatusAvailableBg,
-                                            contentColor = StatusAvailableGreen
-                                        ),
-                                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp)
-                                    ) {
-                                        Text("Confirmar", fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                                    }
-                                }
+            Spacer(modifier = Modifier.height(8.dp))
 
-                                // [ CANCELAR ]
-                                OutlinedButton(
-                                    onClick = { onCancelClick(res) },
-                                    modifier = Modifier
-                                        .weight(1.0f)
-                                        .height(38.dp),
-                                    shape = RoundedCornerShape(8.dp),
-                                    border = androidx.compose.foundation.BorderStroke(1.dp, StatusOccupiedRed),
-                                    colors = ButtonDefaults.outlinedButtonColors(
-                                        containerColor = StatusOccupiedBg,
-                                        contentColor = StatusOccupiedRed
-                                    ),
-                                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp)
-                                ) {
-                                    Text("Cancelar", fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                                }
-                            }
+            // Arrival, Duration and Calculated Departure
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(CardLightSubtle, RoundedCornerShape(6.dp))
+                    .padding(8.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Schedule, contentDescription = null, modifier = Modifier.size(14.dp), tint = HotelNavy)
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "Llegada: ${dateTimeFormat.format(Date(res.arrivalTimeEpoch))}",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = TextDark
+                    )
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Timer, contentDescription = null, modifier = Modifier.size(14.dp), tint = TextDarkSecondary)
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "Duración: ${res.durationMinutes / 60}h ${res.durationMinutes % 60}m (${res.tariffTitle})",
+                            fontSize = 12.sp,
+                            color = TextDarkSecondary
+                        )
+                    }
+
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Logout, contentDescription = null, modifier = Modifier.size(14.dp), tint = StatusOccupiedRed)
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "Salida: ${timeOnlyFormat.format(Date(departureEpoch))}",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = StatusOccupiedRed
+                        )
+                    }
+                }
+            }
+
+            if (res.notes.isNotBlank()) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = "Notas: ${res.notes}",
+                    fontSize = 11.sp,
+                    color = TextDarkSecondary,
+                    fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
+                )
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Action Buttons: HOSPEDAR, MODIFICAR, CONFIRMAR, CANCELAR
+            if (isUpcomingOrPending) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    // [ HOSPEDAR ]
+                    Button(
+                        onClick = { onCheckInFromReservation(res) },
+                        modifier = Modifier
+                            .weight(1.3f)
+                            .height(38.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = ButtonAccent,
+                            contentColor = ButtonAccentText
+                        ),
+                        shape = RoundedCornerShape(8.dp),
+                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp)
+                    ) {
+                        Icon(Icons.Default.MeetingRoom, contentDescription = null, modifier = Modifier.size(14.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("HOSPEDAR", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+
+                    // [ MODIFICAR ]
+                    OutlinedButton(
+                        onClick = { onModifyClick(res) },
+                        modifier = Modifier
+                            .weight(1.1f)
+                            .height(38.dp),
+                        shape = RoundedCornerShape(8.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, BorderMedium),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = ButtonSecondaryBg,
+                            contentColor = ButtonSecondaryText
+                        ),
+                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp)
+                    ) {
+                        Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(13.dp))
+                        Spacer(modifier = Modifier.width(3.dp))
+                        Text("Modificar", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    }
+
+                    if (res.status == ReservationStatus.PENDIENTE) {
+                        // [ CONFIRMAR ]
+                        OutlinedButton(
+                            onClick = { onUpdateStatus(res.id, ReservationStatus.CONFIRMADA) },
+                            modifier = Modifier
+                                .weight(1.1f)
+                                .height(38.dp),
+                            shape = RoundedCornerShape(8.dp),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, StatusAvailableGreen),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                containerColor = StatusAvailableBg,
+                                contentColor = StatusAvailableGreen
+                            ),
+                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp)
+                        ) {
+                            Text("Confirmar", fontSize = 10.sp, fontWeight = FontWeight.Bold)
                         }
+                    }
+
+                    // [ CANCELAR ]
+                    OutlinedButton(
+                        onClick = { onCancelClick(res) },
+                        modifier = Modifier
+                            .weight(1.0f)
+                            .height(38.dp),
+                        shape = RoundedCornerShape(8.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, StatusOccupiedRed),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = StatusOccupiedBg,
+                            contentColor = StatusOccupiedRed
+                        ),
+                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp)
+                    ) {
+                        Text("Cancelar", fontSize = 10.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -2200,6 +2445,7 @@ fun CreateReservationDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        modifier = Modifier.widthIn(max = 560.dp),
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.EventAvailable, contentDescription = null, tint = HotelNavy)
@@ -2578,6 +2824,7 @@ fun ModifyReservationDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        modifier = Modifier.widthIn(max = 560.dp),
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.EditCalendar, contentDescription = null, tint = HotelNavy)
