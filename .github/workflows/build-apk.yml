@@ -1,4 +1,4 @@
-name: Build & Release Android APK
+name: Build & Release Android
 
 on:
   push:
@@ -38,24 +38,24 @@ jobs:
       - name: Descargar repositorio (Checkout)
         uses: actions/checkout@v4
 
-      - name: Configurar Java JDK 17
+      - name: Configurar Java JDK 21 (Requerido por AGP 9.1.1 y Gradle 9.3.1)
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '17'
+          java-version: '21'
 
-      - name: Aceptar licencias de Android SDK
+      - name: Aceptar licencias y configurar permisos de Android SDK
         run: |
-          mkdir -p "$ANDROID_HOME/licenses"
-          echo -e "\n8933bad161af4178b1185d1a37fbf41ea5269c55\nd56f5187479451eabf01fb78af6dfcb131a6481e\n24333f8a63b6825ea9c5514f83c2829b004d1fee" > "$ANDROID_HOME/licenses/android-sdk-license"
-          echo -e "\n84831b9409646a918e30573bab4c9c91346d8abd" > "$ANDROID_HOME/licenses/android-sdk-preview-license"
-          yes | sdkmanager --licenses 2>/dev/null || true
+          SDK_DIR="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          sudo chown -R $USER:$USER "$SDK_DIR" 2>/dev/null || true
+          mkdir -p "$SDK_DIR/licenses" 2>/dev/null || true
+          printf "8933bad161af4178b1185d1a37fbf41ea5269c55\nd56f5187479451eabf01fb78af6dfcb131a6481e\n24333f8a63b6825ea9c5514f83c2829b004d1fee\n" > "$SDK_DIR/licenses/android-sdk-license" || true
+          printf "84831b9409646a918e30573bab4c9c91346d8abd\n" > "$SDK_DIR/licenses/android-sdk-preview-license" || true
+          printf "d97546511b248a39df35309e688836e4e65cb576\n" > "$SDK_DIR/licenses/android-sdk-arm-dbt-license" || true
+          echo "Licencias de Android SDK configuradas exitosamente en $SDK_DIR/licenses"
 
       - name: Configurar Gradle y Caching
         uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '9.3.1'
-          cache-read-only: false
 
       - name: Preparar variables de entorno y archivos base (.env)
         run: |
@@ -63,21 +63,21 @@ jobs:
           if [ ! -f .env.example ]; then
             touch .env.example
           fi
-          echo "Archivos .env verificados."
+          echo "Archivos .env y .env.example listos."
 
-      - name: Preparar Keystore de depuración
+      - name: Preparar Keystore de depuración (debugConfig)
         run: |
-          if [ -f debug.keystore.base64 ] && [ ! -f debug.keystore ]; then
+          if [ -f debug.keystore.base64 ] && [ ! -s debug.keystore ]; then
             echo "Decodificando debug.keystore.base64..."
-            base64 -d debug.keystore.base64 > debug.keystore
+            base64 -d debug.keystore.base64 > debug.keystore 2>/dev/null || base64 --decode debug.keystore.base64 > debug.keystore 2>/dev/null || true
           fi
-          if [ ! -f debug.keystore ]; then
-            echo "Generando debug.keystore necesario para debugConfig..."
-            keytool -genkey -v -keystore debug.keystore -alias androiddebugkey -storepass android -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+          if [ ! -s debug.keystore ]; then
+            echo "Generando debug.keystore con keytool..."
+            keytool -genkeypair -v -keystore debug.keystore -alias androiddebugkey -storepass android -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
           fi
           ls -lh debug.keystore
 
-      - name: Dar permisos de ejecución a gradlew
+      - name: Dar permisos de ejecución al Wrapper de Gradle
         run: |
           if [ -f "./gradlew" ]; then
             chmod +x ./gradlew
@@ -86,24 +86,24 @@ jobs:
       - name: Compilar APK con Gradle
         run: |
           if [ -f "./gradlew" ]; then
-            echo "Compilando con Gradle Wrapper (./gradlew)..."
-            ./gradlew :app:assembleDebug --no-daemon --stacktrace
+            echo "Iniciando compilación con ./gradlew..."
+            ./gradlew :app:assembleDebug --no-daemon --no-configuration-cache --stacktrace
           else
-            echo "Compilando con Gradle CLI..."
-            gradle :app:assembleDebug --no-daemon --stacktrace
+            echo "Iniciando compilación con Gradle del sistema..."
+            gradle :app:assembleDebug --no-daemon --no-configuration-cache --stacktrace
           fi
 
       - name: Preparar y verificar APK generado
         run: |
           mkdir -p build/dist-apk
-          APK_FOUND=$(find app/build/outputs/apk -name "*.apk" | head -n 1)
+          APK_FOUND=$(find app/build/outputs/apk -type f -name "*.apk" | head -n 1)
           if [ -n "$APK_FOUND" ] && [ -f "$APK_FOUND" ]; then
             cp "$APK_FOUND" build/dist-apk/HotelRivera-v1.0.apk
             echo "APK copiado exitosamente de $APK_FOUND a build/dist-apk/HotelRivera-v1.0.apk"
             ls -lh build/dist-apk/HotelRivera-v1.0.apk
           else
             echo "Error: No se encontró ningún archivo APK generado en app/build/outputs/apk"
-            find app/build/outputs || true
+            find . -name "*.apk" || true
             exit 1
           fi
 
