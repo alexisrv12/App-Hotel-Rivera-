@@ -252,17 +252,26 @@ class HotelRepository(private val context: Context) {
         })
     }
 
+    private fun getFirestoreInstance(): FirebaseFirestore {
+        return try {
+            val dbIdRes = context.resources.getIdentifier("firestore_database_id", "string", context.packageName)
+            val databaseId = if (dbIdRes != 0) context.getString(dbIdRes) else null
+            if (!databaseId.isNullOrBlank() && databaseId != "(default)") {
+                FirebaseFirestore.getInstance(databaseId)
+            } else {
+                FirebaseFirestore.getInstance()
+            }
+        } catch (_: Exception) {
+            FirebaseFirestore.getInstance()
+        }
+    }
+
     private fun initFirebase() {
         try {
             if (FirebaseApp.getApps(context).isEmpty()) {
-                val options = FirebaseOptions.Builder()
-                    .setApplicationId("1:433380736991:android:com.aistudio.hotelrivera")
-                    .setProjectId("hotel-rivera-cloud")
-                    .setApiKey("AIzaSyB3HotelRiveraCloudFirestoreClientToken")
-                    .build()
-                FirebaseApp.initializeApp(context, options)
+                FirebaseApp.initializeApp(context)
             }
-            val db = FirebaseFirestore.getInstance()
+            val db = getFirestoreInstance()
             val settings = FirebaseFirestoreSettings.Builder()
                 .setPersistenceEnabled(true)
                 .build()
@@ -270,14 +279,22 @@ class HotelRepository(private val context: Context) {
             isFirebaseAvailable = true
             setupFirestoreRealtimeSync()
         } catch (_: Exception) {
-            isFirebaseAvailable = false
+            try {
+                if (FirebaseApp.getApps(context).isEmpty()) {
+                    FirebaseApp.initializeApp(context)
+                }
+                isFirebaseAvailable = true
+                setupFirestoreRealtimeSync()
+            } catch (_: Exception) {
+                isFirebaseAvailable = false
+            }
         }
     }
 
     private fun setupFirestoreRealtimeSync() {
         if (!isFirebaseAvailable) return
         try {
-            val db = FirebaseFirestore.getInstance()
+            val db = getFirestoreInstance()
             val hotelId = _hotelConfig.value.hotelId
             val hotelRef = db.collection("hotels").document(hotelId)
 
@@ -520,7 +537,7 @@ class HotelRepository(private val context: Context) {
 
             if (isFirebaseAvailable) {
                 try {
-                    val db = FirebaseFirestore.getInstance()
+                    val db = getFirestoreInstance()
                     val hotelId = _hotelConfig.value.hotelId
                     val hotelRef = db.collection("hotels").document(hotelId)
 
@@ -589,7 +606,7 @@ class HotelRepository(private val context: Context) {
         if (isFirebaseAvailable) {
             coroutineScope.launch {
                 try {
-                    val db = FirebaseFirestore.getInstance()
+                    val db = getFirestoreInstance()
                     val hotelId = _hotelConfig.value.hotelId
                     val codeMap = hashMapOf(
                         "code" to codeStr,
@@ -615,7 +632,7 @@ class HotelRepository(private val context: Context) {
 
         if (foundCode == null && isFirebaseAvailable) {
             try {
-                val db = FirebaseFirestore.getInstance()
+                val db = getFirestoreInstance()
                 val hotelId = _hotelConfig.value.hotelId
                 // Synchronous task wait on IO thread
                 runBlocking(Dispatchers.IO) {
@@ -681,7 +698,7 @@ class HotelRepository(private val context: Context) {
         if (isFirebaseAvailable) {
             coroutineScope.launch {
                 try {
-                    val db = FirebaseFirestore.getInstance()
+                    val db = getFirestoreInstance()
                     val hotelId = _hotelConfig.value.hotelId
                     val hotelRef = db.collection("hotels").document(hotelId)
 
@@ -726,7 +743,7 @@ class HotelRepository(private val context: Context) {
         if (isFirebaseAvailable) {
             coroutineScope.launch {
                 try {
-                    val db = FirebaseFirestore.getInstance()
+                    val db = getFirestoreInstance()
                     val hotelId = _hotelConfig.value.hotelId
                     db.collection("hotels").document(hotelId).collection("devices").document(deviceId).update("deviceName", newName)
                 } catch (_: Exception) {}
@@ -750,7 +767,7 @@ class HotelRepository(private val context: Context) {
         if (isFirebaseAvailable) {
             coroutineScope.launch {
                 try {
-                    val db = FirebaseFirestore.getInstance()
+                    val db = getFirestoreInstance()
                     val hotelId = _hotelConfig.value.hotelId
                     db.collection("hotels").document(hotelId).collection("devices").document(deviceId)
                         .update("status", "REVOCADO", "isAuthorized", false)
@@ -850,7 +867,7 @@ class HotelRepository(private val context: Context) {
         if (!isFirebaseAvailable) return
         coroutineScope.launch {
             try {
-                val db = FirebaseFirestore.getInstance()
+                val db = getFirestoreInstance()
                 val hotelId = _hotelConfig.value.hotelId
                 val data = hashMapOf(
                     "number" to room.number,
@@ -872,7 +889,7 @@ class HotelRepository(private val context: Context) {
         if (!isFirebaseAvailable) return
         coroutineScope.launch {
             try {
-                val db = FirebaseFirestore.getInstance()
+                val db = getFirestoreInstance()
                 val hotelId = _hotelConfig.value.hotelId
                 val batch = db.batch()
                 for (room in _rooms.value) {
@@ -1126,7 +1143,7 @@ class HotelRepository(private val context: Context) {
         if (!isFirebaseAvailable) return
         coroutineScope.launch {
             try {
-                val db = FirebaseFirestore.getInstance()
+                val db = getFirestoreInstance()
                 val hotelId = _hotelConfig.value.hotelId
                 val data = hashMapOf(
                     "invoiceNumber" to invoice.invoiceNumber,
@@ -1162,7 +1179,7 @@ class HotelRepository(private val context: Context) {
         if (!isFirebaseAvailable) return
         coroutineScope.launch {
             try {
-                val db = FirebaseFirestore.getInstance()
+                val db = getFirestoreInstance()
                 val hotelId = _hotelConfig.value.hotelId
                 val data = hashMapOf(
                     "roomNumber" to stay.roomNumber,
@@ -1656,7 +1673,7 @@ class HotelRepository(private val context: Context) {
         if (!isFirebaseAvailable) return
         coroutineScope.launch {
             try {
-                val db = FirebaseFirestore.getInstance()
+                val db = getFirestoreInstance()
                 val hotelId = _hotelConfig.value.hotelId
                 val data = hashMapOf(
                     "reservationNumber" to res.reservationNumber,
@@ -1974,7 +1991,7 @@ class HotelRepository(private val context: Context) {
         if (isFirebaseAvailable) {
             coroutineScope.launch {
                 try {
-                    val db = FirebaseFirestore.getInstance()
+                    val db = getFirestoreInstance()
                     val hotelId = _hotelConfig.value.hotelId
                     val configMap = hashMapOf(
                         "hotelName" to _hotelConfig.value.hotelName,

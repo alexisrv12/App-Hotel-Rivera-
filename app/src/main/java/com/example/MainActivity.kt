@@ -26,6 +26,8 @@ import com.example.ui.screens.*
 import com.example.ui.theme.HotelRiveraTheme
 import com.example.viewmodel.AppScreen
 import com.example.viewmodel.HotelViewModel
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseUser
 
 class MainActivity : ComponentActivity() {
 
@@ -49,7 +51,35 @@ class MainActivity : ComponentActivity() {
         setContent {
             HotelRiveraTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    HotelRiveraApp(viewModel = viewModel)
+                    val auth = remember { FirebaseAuth.getInstance() }
+                    var currentUser by remember { mutableStateOf(auth.currentUser) }
+
+                    DisposableEffect(auth) {
+                        val listener = FirebaseAuth.AuthStateListener { fbAuth ->
+                            currentUser = fbAuth.currentUser
+                        }
+                        auth.addAuthStateListener(listener)
+                        onDispose {
+                            auth.removeAuthStateListener(listener)
+                        }
+                    }
+
+                    if (currentUser == null) {
+                        SignInScreen(
+                            onSignInSuccess = { user ->
+                                currentUser = user
+                            }
+                        )
+                    } else {
+                        HotelRiveraApp(
+                            viewModel = viewModel,
+                            currentUser = currentUser,
+                            onSignOut = {
+                                auth.signOut()
+                                currentUser = null
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -57,7 +87,11 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun HotelRiveraApp(viewModel: HotelViewModel) {
+fun HotelRiveraApp(
+    viewModel: HotelViewModel,
+    currentUser: FirebaseUser? = null,
+    onSignOut: () -> Unit = {}
+) {
     val currentScreen by viewModel.currentScreen.collectAsStateWithLifecycle()
     val gerenteSection by viewModel.gerenteSection.collectAsStateWithLifecycle()
     val recepcionTab by viewModel.recepcionTab.collectAsStateWithLifecycle()
@@ -98,6 +132,8 @@ fun HotelRiveraApp(viewModel: HotelViewModel) {
             MainHubScreen(
                 connectionStatus = connectionStatus,
                 pendingSyncCount = pendingSyncCount,
+                currentUserEmail = currentUser?.displayName?.takeIf { it.isNotBlank() } ?: currentUser?.email,
+                onSignOutClick = onSignOut,
                 onSyncClick = { viewModel.requestSync() },
                 onVincularDispositivoClick = { viewModel.navigateTo(AppScreen.DEVICE_LINK) },
                 onGerenteClick = {

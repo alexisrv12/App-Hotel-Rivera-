@@ -7,7 +7,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Key
+import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.MeetingRoom
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material3.*
@@ -37,6 +39,8 @@ fun MainHubScreen(
     onVincularDispositivoClick: () -> Unit,
     onGerenteClick: () -> Unit,
     onRecepcionClick: () -> Unit,
+    currentUserEmail: String? = null,
+    onSignOutClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     Scaffold(
@@ -116,6 +120,73 @@ fun MainHubScreen(
                     textAlign = TextAlign.Center,
                     modifier = Modifier.padding(top = 4.dp)
                 )
+            }
+
+            // Staff Authenticated Info & Sign Out
+            if (!currentUserEmail.isNullOrBlank()) {
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .widthIn(max = 440.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    color = CardLightSubtle,
+                    border = androidx.compose.foundation.BorderStroke(1.dp, BorderMedium)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.AccountCircle,
+                                contentDescription = null,
+                                tint = HotelNavy,
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Column {
+                                Text(
+                                    text = "Personal Autenticado",
+                                    fontSize = 10.sp,
+                                    color = TextDarkSecondary,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Text(
+                                    text = currentUserEmail,
+                                    fontSize = 12.sp,
+                                    color = TextDark,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1
+                                )
+                            }
+                        }
+
+                        if (onSignOutClick != null) {
+                            OutlinedButton(
+                                onClick = onSignOutClick,
+                                shape = RoundedCornerShape(8.dp),
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = StatusOccupiedRed),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, StatusOccupiedRed.copy(alpha = 0.5f)),
+                                modifier = Modifier.testTag("btn_sign_out")
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Logout,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Salir", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
             }
 
             // Main Primary Buttons Section (Only these 3 buttons per section 1)
