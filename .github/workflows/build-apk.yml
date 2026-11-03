@@ -1,0 +1,106 @@
+name: Build & Release Android APK
+
+on:
+  push:
+    branches: [ "**" ]
+    tags:
+      - "v*"
+  pull_request:
+    branches: [ "**" ]
+  workflow_dispatch:
+    inputs:
+      create_release:
+        description: 'Publicar release formal con el APK adjunto'
+        required: false
+        type: boolean
+        default: false
+      tag_name:
+        description: 'Nombre de la versión (ej. v1.0.0)'
+        required: false
+        type: string
+        default: 'v1.0.0'
+  release:
+    types: [ published, created ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-apk:
+    name: Compilar APK Android
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Descargar repositorio (Checkout)
+        uses: actions/checkout@v4
+
+      - name: Configurar Java JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Configurar Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '9.3.1'
+
+      - name: Decodificar Keystore de depuración
+        run: |
+          if [ -f debug.keystore.base64 ] && [ ! -f debug.keystore ]; then
+            echo "Decodificando debug.keystore.base64..."
+            base64 -d debug.keystore.base64 > debug.keystore
+          fi
+          if [ -f debug.keystore ]; then
+            echo "Keystore verificado."
+          else
+            echo "Aviso: No se encontró keystore local; Gradle generará el debug keystore automáticamente."
+          fi
+
+      - name: Compilar APK con Gradle
+        run: |
+          gradle :app:assembleDebug --no-daemon --stacktrace
+
+      - name: Preparar carpeta de distribución de APK
+        run: |
+          mkdir -p build/dist-apk
+          APK_SRC="app/build/outputs/apk/debug/app-debug.apk"
+          if [ -f "$APK_SRC" ]; then
+            cp "$APK_SRC" build/dist-apk/HotelRivera-v1.0.apk
+            echo "APK copiado exitosamente a build/dist-apk/HotelRivera-v1.0.apk"
+            ls -lh build/dist-apk/
+          else
+            echo "Error: No se encontró el APK en $APK_SRC"
+            exit 1
+          fi
+
+      - name: Subir APK como Artefacto descargable en GitHub Actions
+        uses: actions/upload-artifact@v4
+        with:
+          name: HotelRivera-Android-APK
+          path: build/dist-apk/HotelRivera-v1.0.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publicar APK en GitHub Release (si es tag o solicitado)
+        if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.create_release == 'true' || github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.tag_name || github.ref_name }}
+          name: "Hotel Rivera ${{ github.event.inputs.tag_name || github.ref_name }}"
+          body: |
+            ### 📱 Hotel Rivera — Instalador de Aplicación Android (APK)
+
+            Esta versión contiene el instalador APK listo para su descarga e instalación en teléfonos y tablets Android.
+
+            #### Instrucciones de Instalación:
+            1. Descarga el archivo **`HotelRivera-v1.0.apk`** que se encuentra abajo en los recursos adjuntos (*Assets*).
+            2. Transfiere o abre el archivo en tu dispositivo Android.
+            3. Si el sistema lo solicita, autoriza "Instalar aplicaciones de fuentes desconocidas".
+            4. Abre la aplicación e inicia sesión con la cuenta de Google del hotel.
+          files: build/dist-apk/HotelRivera-v1.0.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
