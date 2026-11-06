@@ -158,23 +158,27 @@ jobs:
           retention-days: 30
           overwrite: true
 
-      - name: Publicar APK en GitHub Release (si es tag o solicitado)
-        if: startsWith(github.ref, 'refs/tags/v') || (github.event.inputs.create_release == 'true' && startsWith(github.event.inputs.tag_name, 'v'))
+      - name: Publicar APK en GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.event.inputs.create_release == 'true' || github.event_name == 'workflow_dispatch'
         uses: softprops/action-gh-release@v2
         continue-on-error: true
         with:
-          tag_name: ${{ github.event.inputs.tag_name || github.ref_name }}
-          name: "Hotel Rivera ${{ github.event.inputs.tag_name || github.ref_name }}"
+          tag_name: ${{ github.event.inputs.tag_name || (startsWith(github.ref, 'refs/tags/v') && github.ref_name) || 'v1.0.0' }}
+          name: "Hotel Rivera ${{ github.event.inputs.tag_name || (startsWith(github.ref, 'refs/tags/v') && github.ref_name) || 'v1.0.0' }}"
           body: |
             ### 📱 Hotel Rivera — Instalador de Aplicación Android (APK)
 
-            Esta versión contiene el instalador APK listo para su descarga e instalación en teléfonos y tablets Android.
+            Versión oficial compilada y lista para su descarga directa en teléfonos celulares y tablets Android.
 
-            #### Instrucciones de Instalación:
-            1. Descarga el archivo **`HotelRivera-v1.0.apk`** que se encuentra abajo en los recursos adjuntos (*Assets*).
-            2. Transfiere o abre el archivo en tu dispositivo Android.
-            3. Si el sistema lo solicita, autoriza "Instalar aplicaciones de fuentes desconocidas".
-            4. Abre la aplicación e inicia sesión con la cuenta de Google del hotel.
+            #### 📥 Descarga Directa:
+            - Pulsa sobre **`HotelRivera-v1.0.apk`** abajo en la sección **Assets**.
+            - La descarga del archivo `.apk` comenzará inmediatamente en tu navegador sin requerir inicio de sesión ni descomprimir archivos ZIP.
+
+            #### 📲 Pasos de Instalación:
+            1. Abre el archivo descargado en tu dispositivo Android.
+            2. Si aparece la alerta del sistema, selecciona **Ajustes** y activa **Instalar aplicaciones desconocidas**.
+            3. Pulsa **Instalar** y luego **Abrir**.
+            4. Inicia sesión con la cuenta de Google del hotel para acceder al sistema.
           files: build/dist-apk/HotelRivera-v1.0.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
