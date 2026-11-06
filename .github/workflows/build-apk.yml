@@ -44,80 +44,112 @@ jobs:
           java-version: '21'
           cache: 'gradle'
 
-      - name: Configurar Entorno Android SDK y Licencias
+      - name: Aceptar licencias del Android SDK con herramienta oficial (sdkmanager)
         run: |
-          SDK_DIR="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
-          echo "ANDROID_HOME=$SDK_DIR" >> $GITHUB_ENV
-          echo "ANDROID_SDK_ROOT=$SDK_DIR" >> $GITHUB_ENV
-          echo "$SDK_DIR/cmdline-tools/latest/bin" >> $GITHUB_PATH
-          echo "$SDK_DIR/platform-tools" >> $GITHUB_PATH
-          
-          # Habilitar permisos de escritura en carpetas requeridas
-          sudo mkdir -p "$SDK_DIR/licenses" "$SDK_DIR/platforms" 2>/dev/null || mkdir -p "$SDK_DIR/licenses" "$SDK_DIR/platforms"
-          sudo chmod -R 777 "$SDK_DIR/licenses" "$SDK_DIR/platforms" 2>/dev/null || true
+          echo "Configurando licencias del Android SDK mediante sdkmanager oficial..."
+          if [ -d "$ANDROID_HOME/cmdline-tools/latest/bin" ]; then
+            yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses || true
+          elif command -v sdkmanager &> /dev/null; then
+            yes | sdkmanager --licenses || true
+          fi
 
-          # Escribir hashes de licencias oficiales del SDK
-          printf "8933bad161af4178b1185d1a37fbf41ea5269c55\nd56f5187479451eabf01fb78af6dfcb131a6481e\n24333f8a63b6825ea9c5514f83c2829b004d1fee\n" | sudo tee "$SDK_DIR/licenses/android-sdk-license" > /dev/null
-          printf "84831b9409646a918e30573bab4c9c91346d8abd\n" | sudo tee "$SDK_DIR/licenses/android-sdk-preview-license" > /dev/null
-          printf "d97546511b248a39df35309e688836e4e65cb576\n" | sudo tee "$SDK_DIR/licenses/android-sdk-arm-dbt-license" > /dev/null
-          
-          # Configurar local.properties para asegurar detección de SDK
-          echo "sdk.dir=$SDK_DIR" > local.properties
-          echo "sdk.dir=$SDK_DIR" > app/local.properties
-          echo "Android SDK y licencias configurados exitosamente en $SDK_DIR"
+      - name: Asegurar plataforma Android SDK requerida por compileSdk
+        run: |
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          if [ ! -d "$ANDROID_HOME/platforms/android-36" ] && [ -x "$SDKMANAGER" ]; then
+            echo "Instalando plataforma Android 36 con sdkmanager..."
+            echo y | "$SDKMANAGER" --install "platforms;android-36" || true
+          fi
 
-      - name: Preparar variables de entorno (.env)
+      - name: Preparar variables de entorno y archivos base (.env)
         run: |
           touch .env
           if [ ! -f .env.example ]; then
             touch .env.example
           fi
+          echo "Archivos .env y .env.example preparados para el plugin de secretos."
 
       - name: Preparar Keystore de depuración (debugConfig)
         run: |
           if [ -f debug.keystore.base64 ] && [ ! -s debug.keystore ]; then
-            echo "Decodificando debug.keystore.base64..."
+            echo "Decodificando debug.keystore desde base64..."
             base64 -d debug.keystore.base64 > debug.keystore 2>/dev/null || base64 --decode debug.keystore.base64 > debug.keystore 2>/dev/null || true
           fi
           if [ ! -s debug.keystore ]; then
-            echo "Generando debug.keystore con keytool..."
+            echo "Generando debug.keystore requerido para signingConfig debug..."
             keytool -genkeypair -v -keystore debug.keystore -alias androiddebugkey -storepass android -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
           fi
           ls -lh debug.keystore
 
-      - name: Preparar script ejecutable gradlew
+      - name: Verificar estructura del proyecto y permisos
         run: |
-          if [ -f "./gradlew" ]; then
-            sed -i 's/\r$//' ./gradlew || true
-            chmod +x ./gradlew
-          fi
-
-      - name: Compilar APK optimizado con Gradle
-        run: |
-          bash ./gradlew :app:assembleDebug \
-            --no-daemon \
-            --no-configuration-cache \
-            --stacktrace \
-            -Dorg.gradle.jvmargs="-Xmx3072m -XX:+UseG1GC -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8" \
-            -Dorg.gradle.workers.max=2
-
-      - name: Preparar y verificar APK generado
-        run: |
-          mkdir -p build/dist-apk
-          APK_FOUND=$(find app/build/outputs/apk -type f -name "*.apk" | head -n 1)
-          if [ -z "$APK_FOUND" ]; then
-            APK_FOUND=$(find . -type f -name "*.apk" | head -n 1)
-          fi
-          if [ -n "$APK_FOUND" ] && [ -f "$APK_FOUND" ]; then
-            cp "$APK_FOUND" build/dist-apk/HotelRivera-v1.0.apk
-            echo "APK generado y preparado en: build/dist-apk/HotelRivera-v1.0.apk"
-            ls -lh build/dist-apk/HotelRivera-v1.0.apk
-          else
-            echo "Error: No se encontró ningún archivo APK generado"
+          echo "1. Comprobando existencia de gradlew..."
+          if [ ! -f "./gradlew" ]; then
+            echo "Error: gradlew no existe en la raíz del proyecto."
             exit 1
           fi
 
-      - name: Subir APK como Artefacto descargable en GitHub Actions
+          echo "2. Comprobando y asignando permisos de ejecución a gradlew..."
+          sed -i 's/\r$//' ./gradlew || true
+          chmod +x ./gradlew
+          if [ ! -x "./gradlew" ]; then
+            echo "Error: gradlew no tiene permisos de ejecución."
+            exit 1
+          fi
+
+          echo "3. Comprobando existencia del módulo 'app'..."
+          if [ ! -d "app" ] || [ ! -f "app/build.gradle.kts" ]; then
+            echo "Error: No se encontró la carpeta del módulo 'app' o su archivo build.gradle.kts."
+            exit 1
+          fi
+
+          echo "4. Comprobando inclusión del módulo ':app' en settings.gradle.kts..."
+          if ! grep -q 'include(":app")' settings.gradle.kts; then
+            echo "Error: El módulo ':app' no está incluido en settings.gradle.kts."
+            exit 1
+          fi
+
+          echo "Estructura del proyecto y permisos verificados exitosamente."
+
+      - name: Compilar APK con Gradle
+        run: |
+          ./gradlew :app:assembleDebug --no-daemon --stacktrace
+
+      - name: Generar y verificar APK en el módulo app
+        run: |
+          mkdir -p build/dist-apk
+          APK_ORIGEN="app/build/outputs/apk/debug/app-debug.apk"
+
+          if [ ! -f "$APK_ORIGEN" ]; then
+            echo "Buscando APK generado en subcarpetas de app/build/outputs/apk..."
+            APK_ORIGEN=$(find app/build/outputs/apk -type f -name "*.apk" | head -n 1)
+          fi
+
+          if [ -z "$APK_ORIGEN" ] || [ ! -f "$APK_ORIGEN" ]; then
+            echo "Error crítico: No se generó ningún archivo APK en el módulo app."
+            find app/build/outputs -maxdepth 4 2>/dev/null || true
+            exit 1
+          fi
+
+          if [ ! -s "$APK_ORIGEN" ]; then
+            echo "Error crítico: El archivo APK generado ($APK_ORIGEN) tiene un tamaño de 0 bytes."
+            exit 1
+          fi
+
+          TAMANIO=$(du -h "$APK_ORIGEN" | cut -f1)
+          echo "APK generado exitosamente en: $APK_ORIGEN (Tamaño: $TAMANIO)"
+
+          cp "$APK_ORIGEN" build/dist-apk/HotelRivera-v1.0.apk
+
+          if [ ! -s "build/dist-apk/HotelRivera-v1.0.apk" ]; then
+            echo "Error: Fallo al copiar el archivo a build/dist-apk/HotelRivera-v1.0.apk"
+            exit 1
+          fi
+
+          echo "APK listo y verificado para publicación:"
+          ls -lh build/dist-apk/HotelRivera-v1.0.apk
+
+      - name: Publicar Artefacto descargable en GitHub Actions
         uses: actions/upload-artifact@v4
         with:
           name: HotelRivera-Android-APK
