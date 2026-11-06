@@ -1,4 +1,4 @@
-name: Build & Release Android
+name: Build & Release Android APK
 
 on:
   push:
@@ -19,8 +19,6 @@ on:
         required: false
         type: string
         default: 'v1.0.0'
-  release:
-    types: [ published, created ]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -30,6 +28,7 @@ jobs:
   build-apk:
     name: Compilar APK Android
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: write
       packages: write
@@ -45,33 +44,34 @@ jobs:
           java-version: '21'
           cache: 'gradle'
 
-      - name: Configurar Android SDK, Licencias y local.properties
+      - name: Configurar Entorno Android SDK y Licencias
         run: |
           SDK_DIR="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
           echo "ANDROID_HOME=$SDK_DIR" >> $GITHUB_ENV
           echo "ANDROID_SDK_ROOT=$SDK_DIR" >> $GITHUB_ENV
+          echo "$SDK_DIR/cmdline-tools/latest/bin" >> $GITHUB_PATH
+          echo "$SDK_DIR/platform-tools" >> $GITHUB_PATH
           
-          # Habilitar permisos de escritura en carpetas clave
+          # Habilitar permisos de escritura en carpetas requeridas
           sudo mkdir -p "$SDK_DIR/licenses" "$SDK_DIR/platforms" 2>/dev/null || mkdir -p "$SDK_DIR/licenses" "$SDK_DIR/platforms"
           sudo chmod -R 777 "$SDK_DIR/licenses" "$SDK_DIR/platforms" 2>/dev/null || true
 
-          # Escribir hashes de licencias oficiales
+          # Escribir hashes de licencias oficiales del SDK
           printf "8933bad161af4178b1185d1a37fbf41ea5269c55\nd56f5187479451eabf01fb78af6dfcb131a6481e\n24333f8a63b6825ea9c5514f83c2829b004d1fee\n" | sudo tee "$SDK_DIR/licenses/android-sdk-license" > /dev/null
           printf "84831b9409646a918e30573bab4c9c91346d8abd\n" | sudo tee "$SDK_DIR/licenses/android-sdk-preview-license" > /dev/null
           printf "d97546511b248a39df35309e688836e4e65cb576\n" | sudo tee "$SDK_DIR/licenses/android-sdk-arm-dbt-license" > /dev/null
           
-          # Crear local.properties en raíz y submódulo app
+          # Configurar local.properties para asegurar detección de SDK
           echo "sdk.dir=$SDK_DIR" > local.properties
           echo "sdk.dir=$SDK_DIR" > app/local.properties
           echo "Android SDK y licencias configurados exitosamente en $SDK_DIR"
 
-      - name: Preparar variables de entorno y archivos base (.env)
+      - name: Preparar variables de entorno (.env)
         run: |
           touch .env
           if [ ! -f .env.example ]; then
             touch .env.example
           fi
-          echo "Archivos .env listos."
 
       - name: Preparar Keystore de depuración (debugConfig)
         run: |
@@ -92,15 +92,14 @@ jobs:
             chmod +x ./gradlew
           fi
 
-      - name: Compilar APK con Gradle
+      - name: Compilar APK optimizado con Gradle
         run: |
-          if [ -f "./gradlew" ]; then
-            echo "Compilando con Gradle Wrapper (./gradlew)..."
-            ./gradlew :app:assembleDebug --no-daemon --no-configuration-cache --stacktrace
-          else
-            echo "Compilando con Gradle CLI..."
-            gradle :app:assembleDebug --no-daemon --no-configuration-cache --stacktrace
-          fi
+          bash ./gradlew :app:assembleDebug \
+            --no-daemon \
+            --no-configuration-cache \
+            --stacktrace \
+            -Dorg.gradle.jvmargs="-Xmx3072m -XX:+UseG1GC -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8" \
+            -Dorg.gradle.workers.max=2
 
       - name: Preparar y verificar APK generado
         run: |
@@ -111,11 +110,10 @@ jobs:
           fi
           if [ -n "$APK_FOUND" ] && [ -f "$APK_FOUND" ]; then
             cp "$APK_FOUND" build/dist-apk/HotelRivera-v1.0.apk
-            echo "APK copiado exitosamente de $APK_FOUND a build/dist-apk/HotelRivera-v1.0.apk"
+            echo "APK generado y preparado en: build/dist-apk/HotelRivera-v1.0.apk"
             ls -lh build/dist-apk/HotelRivera-v1.0.apk
           else
             echo "Error: No se encontró ningún archivo APK generado"
-            find . -name "*.apk" || true
             exit 1
           fi
 
@@ -129,7 +127,7 @@ jobs:
           overwrite: true
 
       - name: Publicar APK en GitHub Release (si es tag o solicitado)
-        if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.create_release == 'true' || github.event_name == 'release'
+        if: startsWith(github.ref, 'refs/tags/v') || (github.event.inputs.create_release == 'true' && startsWith(github.event.inputs.tag_name, 'v'))
         uses: softprops/action-gh-release@v2
         continue-on-error: true
         with:
