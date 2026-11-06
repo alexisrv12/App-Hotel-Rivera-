@@ -524,7 +524,7 @@ fun GerenteControlGeneralView(
                 )
 
                 Spacer(modifier = Modifier.height(10.dp))
-                Divider()
+                HorizontalDivider()
                 Spacer(modifier = Modifier.height(10.dp))
 
                 // Totals & Balance

@@ -21,6 +21,10 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.EventNote
+import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.automirrored.filled.NavigateBefore
+import androidx.compose.material.icons.automirrored.filled.NavigateNext
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -1065,7 +1069,7 @@ fun RecepcionFacturacionContent(
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
-                Divider()
+                HorizontalDivider()
                 Spacer(modifier = Modifier.height(12.dp))
 
                 Row(
@@ -1290,7 +1294,7 @@ fun RecepcionReservacionesContent(
 ) {
     val dateTimeFormat = remember { SimpleDateFormat("dd/MM/yyyy hh:mm a", Locale.getDefault()) }
     val timeOnlyFormat = remember { SimpleDateFormat("hh:mm a", Locale.getDefault()) }
-    val dayHeaderFormat = remember { SimpleDateFormat("EEEE, d 'de' MMMM 'de' yyyy", Locale("es", "ES")) }
+    val dayHeaderFormat = remember { SimpleDateFormat("EEEE, d 'de' MMMM 'de' yyyy", Locale.forLanguageTag("es-ES")) }
     val shortDayFormat = remember { SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()) }
 
     var selectedCalendarDateEpoch by remember { mutableStateOf(System.currentTimeMillis()) }
@@ -1436,7 +1440,7 @@ fun RecepcionReservacionesContent(
                                 border = androidx.compose.foundation.BorderStroke(1.dp, BorderMedium)
                             ) {
                                 Icon(
-                                    imageVector = if (showOnlySelectedDate) Icons.Default.EventNote else Icons.Default.Today,
+                                    imageVector = if (showOnlySelectedDate) Icons.AutoMirrored.Filled.EventNote else Icons.Default.Today,
                                     contentDescription = null,
                                     modifier = Modifier.size(14.dp)
                                 )
@@ -1631,7 +1635,7 @@ fun RecepcionReservacionesContent(
                                 border = androidx.compose.foundation.BorderStroke(1.dp, BorderMedium)
                             ) {
                                 Icon(
-                                    imageVector = if (showOnlySelectedDate) Icons.Default.EventNote else Icons.Default.Today,
+                                    imageVector = if (showOnlySelectedDate) Icons.AutoMirrored.Filled.EventNote else Icons.Default.Today,
                                     contentDescription = null,
                                     modifier = Modifier.size(14.dp)
                                 )
@@ -1854,7 +1858,7 @@ fun ReservationCardItem(
                     }
 
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Logout, contentDescription = null, modifier = Modifier.size(14.dp), tint = StatusOccupiedRed)
+                        Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null, modifier = Modifier.size(14.dp), tint = StatusOccupiedRed)
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             text = "Salida: ${timeOnlyFormat.format(Date(departureEpoch))}",
@@ -1977,8 +1981,8 @@ fun ReservationCalendarView(
         mutableStateOf(Calendar.getInstance().apply { timeInMillis = selectedDateEpoch })
     }
 
-    val monthYearFormat = remember { SimpleDateFormat("MMMM yyyy", Locale("es", "ES")) }
-    val dayOnlyFormat = remember { SimpleDateFormat("d MMMM yyyy", Locale("es", "ES")) }
+    val monthYearFormat = remember { SimpleDateFormat("MMMM yyyy", Locale.forLanguageTag("es-ES")) }
+    val dayOnlyFormat = remember { SimpleDateFormat("d MMMM yyyy", Locale.forLanguageTag("es-ES")) }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -2041,7 +2045,7 @@ fun ReservationCalendarView(
                     },
                     modifier = Modifier.size(34.dp)
                 ) {
-                    Icon(Icons.Default.ChevronLeft, contentDescription = "Anterior", tint = HotelNavy)
+                    Icon(Icons.AutoMirrored.Filled.NavigateBefore, contentDescription = "Anterior", tint = HotelNavy)
                 }
 
                 Row(
@@ -2090,7 +2094,7 @@ fun ReservationCalendarView(
                     },
                     modifier = Modifier.size(34.dp)
                 ) {
-                    Icon(Icons.Default.ChevronRight, contentDescription = "Siguiente", tint = HotelNavy)
+                    Icon(Icons.AutoMirrored.Filled.NavigateNext, contentDescription = "Siguiente", tint = HotelNavy)
                 }
             }
 
@@ -2419,7 +2423,7 @@ fun CreateReservationDialog(
         arrivalEpoch + (totalDurationMinutes * 60 * 1000L)
     }
 
-    val dateFormat = remember { SimpleDateFormat("EEEE, d 'de' MMMM 'de' yyyy", Locale("es", "ES")) }
+    val dateFormat = remember { SimpleDateFormat("EEEE, d 'de' MMMM 'de' yyyy", Locale.forLanguageTag("es-ES")) }
     val timeFormat = remember { SimpleDateFormat("hh:mm a (HH:mm)", Locale.getDefault()) }
     val fullDateTimeFormat = remember { SimpleDateFormat("dd/MM/yyyy hh:mm a", Locale.getDefault()) }
 
@@ -2798,7 +2802,7 @@ fun ModifyReservationDialog(
         arrivalEpoch + (totalDurationMinutes * 60 * 1000L)
     }
 
-    val dateFormat = remember { SimpleDateFormat("EEEE, d 'de' MMMM 'de' yyyy", Locale("es", "ES")) }
+    val dateFormat = remember { SimpleDateFormat("EEEE, d 'de' MMMM 'de' yyyy", Locale.forLanguageTag("es-ES")) }
     val timeFormat = remember { SimpleDateFormat("hh:mm a (HH:mm)", Locale.getDefault()) }
     val fullDateTimeFormat = remember { SimpleDateFormat("dd/MM/yyyy hh:mm a", Locale.getDefault()) }
 

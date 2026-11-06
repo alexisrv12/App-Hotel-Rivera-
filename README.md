@@ -48,7 +48,7 @@ Si deseas compilar el APK manualmente en tu propia computadora:
 
 ```bash
 # Compilar el APK de depuración
-gradle :app:assembleDebug
+./gradlew :app:assembleDebug
 
 # La ruta del archivo generado es:
 # app/build/outputs/apk/debug/app-debug.apk

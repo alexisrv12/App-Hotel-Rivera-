@@ -129,7 +129,7 @@ fun InvoicePdfViewerDialog(
                             )
 
                             Spacer(modifier = Modifier.height(14.dp))
-                            Divider(color = HotelGold, thickness = 2.dp)
+                            HorizontalDivider(color = HotelGold, thickness = 2.dp)
                             Spacer(modifier = Modifier.height(14.dp))
 
                             // Metadata Grid
@@ -226,7 +226,7 @@ fun InvoicePdfViewerDialog(
                             }
 
                             Spacer(modifier = Modifier.height(10.dp))
-                            Divider()
+                            HorizontalDivider()
                             Spacer(modifier = Modifier.height(10.dp))
 
                             // Total

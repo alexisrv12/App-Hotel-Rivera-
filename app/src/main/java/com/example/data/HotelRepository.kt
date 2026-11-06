@@ -13,6 +13,7 @@ import com.google.firebase.FirebaseApp
 import com.google.firebase.FirebaseOptions
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreSettings
+import com.google.firebase.firestore.PersistentCacheSettings
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.*
@@ -273,7 +274,7 @@ class HotelRepository(private val context: Context) {
             }
             val db = getFirestoreInstance()
             val settings = FirebaseFirestoreSettings.Builder()
-                .setPersistenceEnabled(true)
+                .setLocalCacheSettings(PersistentCacheSettings.newBuilder().build())
                 .build()
             db.firestoreSettings = settings
             isFirebaseAvailable = true
